@@ -9,6 +9,10 @@ app = FastAPI()
 class ProductReviewLink(BaseModel):
     url: str
 
+@app.get("/", tags=["Root"])
+async def read_root():
+    return "it works!"
+
 @app.post("/analyze-reviews/")
 async def analyze_reviews(product: ProductReviewLink):
     try:
