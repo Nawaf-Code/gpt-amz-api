@@ -9,7 +9,7 @@ app = FastAPI()
 class ProductReviewLink(BaseModel):
     url: str
 
-@app.post("/analyze-reviews/")
+@app.post("/analyze-reviews")
 async def analyze_reviews(product: ProductReviewLink):
     try:
         reviews = get_reviews(product.url)
