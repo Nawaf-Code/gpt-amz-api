@@ -1,8 +1,8 @@
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from bs4 import BeautifulSoup
-
 import requests
+import multiprocessing
 
 app = FastAPI()
 
@@ -12,15 +12,35 @@ class ProductReviewLink(BaseModel):
 @app.post("/analyze-reviews")
 async def analyze_reviews(product: ProductReviewLink):
     try:
-        reviews = get_reviews(product.url)
+        # Create a multiprocessing Queue to hold the result
+        result_queue = multiprocessing.Queue()
+
+        # Define a new process to run get_reviews in a separate process
+        process = multiprocessing.Process(target=process_reviews, args=(product.url, result_queue))
+
+        # Start the process
+        process.start()
+
+        # Wait for the process to complete
+        process.join()
+
+        # Retrieve the result from the queue
+        reviews = result_queue.get()
+
         return {"reviews": reviews}
     
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+def process_reviews(url, result_queue):
+    """
+    This function is the target of the multiprocessing process.
+    It runs the get_reviews function and puts the result in a multiprocessing queue.
+    """
+    reviews = get_reviews(url)
+    result_queue.put(reviews)
 
 def convert_review_link(original_url, page_number):
-
     # Split the URL into parts before and after the "ref" parameter
     url_parts = original_url.split('/ref=')
     base_url = url_parts[0]
@@ -38,9 +58,7 @@ def convert_review_link(original_url, page_number):
     
     return modified_url
 
-
 def get_reviews(url):
-
     custom_headers = {
     'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
     'accept-language': 'en-US,en;q=0.9',
@@ -53,16 +71,12 @@ def get_reviews(url):
     scraped_reviews = []
 
     while True:
-
         paginated_url = convert_review_link(url, page_number)
-
         response = requests.get(paginated_url, headers=custom_headers)
         soup = BeautifulSoup(response.text, "lxml")
 
         review_elements = soup.select("div.review")
-
         for review in review_elements:
-
             r_rating_element = review.select_one("i.review-rating")
             r_rating = r_rating_element.text.replace("out of 5 stars", "") if r_rating_element else None
 
@@ -82,10 +96,8 @@ def get_reviews(url):
             scraped_reviews.append(r)
 
         if not soup.select_one("li.a-disabled.a-last"):
-            page_number+=1
-            #sleep(1) 
+            page_number += 1
         else:
             break
 
     return scraped_reviews
-    pass
