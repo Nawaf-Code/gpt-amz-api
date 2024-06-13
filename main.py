@@ -39,7 +39,7 @@ def convert_review_link(original_url, page_number):
 def get_reviews(url):
 
     custom_headers = {
-    'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+    'user-agent': 'YOU USER AGENT',
     'accept-language': 'en-US,en;q=0.9',
     'accept-encoding': 'gzip, deflate, br, zstd',
     'cache-control' : 'no-cache',
